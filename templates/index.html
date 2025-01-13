@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LCFS Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.4/go.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        /* ... (CSS styles from your original code) ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000; /* Background đen */
+            color: #fff; /* Chữ trắng */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #1a1a1a;
+            color: #fff; /* Màu chữ trắng cho header */
+            text-align: center;
+            padding: 1rem;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
+            position: relative; /* Để đặt vị trí cho nút chat history */
+        }
+
+        /* Nút chat history */
+        #chatHistoryBtn {
+            position: absolute;
+            top: 50%;
+            left: 1rem;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10; /* Đảm bảo nút hiển thị trên cùng */
+        }
+
+        #chatHistoryBtn:hover {
+            color: #e0e0e0;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: none;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #aaffff;
+            margin-top: 0.5rem;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #outputContainer {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #fff;
+            background-color: #1a1a1a;
+            box-shadow: none;
+            overflow-y: auto;
+            margin-bottom: 2rem;
+        }
+
+        #output {
+            padding: 1rem;
+            white-space: pre-line;
+            word-break: break-all;
+        }
+
+        .input-controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        #questionInput {
+            flex-grow: 1;
+            padding: 0.8rem;
+            border: 1px solid #fff;
+            border-radius: 5px;
+            font-size: 1rem;
+            background-color: #1a1a1a;
+            color: #fff;
+            outline: none;
+            box-shadow: none;
+        }
+
+        #responseType {
+            padding: 0.5rem;
+            font-size: 1rem;
+            border-radius: 5px;
+            background-color: #1a1a1a;
+            border: 1px solid #fff;
+            color: #fff;
+            outline: none;
+            box-shadow: none;
+        }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            font-size: 1rem;
+            border: none;
+            background-color: #1a1a1a;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: none;
+            transition: all 0.3s ease-in-out;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: none;
+        }
+
+        .stop-button {
+            background-color: #e74c3c;
+            color: white;
+            box-shadow: none;
+        }
+
+        #mindmapDiv {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            height: 70%;
+            background-color: #0f0f0f;
+            border: 1px solid #fff;
+            box-shadow: none;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        #mindmapDiv button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+            color: #fff;
+            background-color: #1a1a1a;
+            box-shadow: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #fff;
+        }
+
+        .user-message {
+            margin-left: auto;
+            max-width: 70%;
+        }
+
+        .bot-message {
+            margin-right: auto;
+            max-width: 70%;
+        }
+
+        #mindmapListContainer {
+            display: none;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .mindmap-list-item {
+            background-color: #1a1a1a;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .mindmap-list-item:hover {
+            background-color: #2a2a2a;
+        }
+
+        .realtime-result-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .realtime-result-item {
+            width: calc(33.33% - 10px);
+            background-color: #1a1a1a;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            overflow: hidden;
+            max-height: 500px;
+        }
+
+        .realtime-result-item a {
+            color: #fff;
+            text-decoration: underline;
+            font-weight: bold;
+            font-size: 1.2em;
+            display: block;
+            margin-bottom: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .realtime-result-item a:hover {
+            color: #e0e0e0;
+        }
+
+        .realtime-result-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 5px;
+            object-fit: cover;
+        }
+        .image-upload-btn {
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .image-upload-btn:hover {
+            background-color: #2a2a2a;
+            box-shadow: none;
+        }
+        .image-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .image-preview {
+            max-width: 100px;
+            max-height: 100px;
+            border: 1px solid #fff;
+            border-radius: 5px;
+        }
+
+        .remove-image-btn {
+            cursor: pointer;
+            color: #ff4d4d;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        /* Chat History Panel Styles */
+        #chatHistoryPanel {
+            position: fixed;
+            top: 0;
+            left: -300px; /* Ẩn bên trái màn hình */
+            width: 300px;
+            height: 100%;
+            background-color: #1a1a1a;
+            border-right: 1px solid #fff;
+            box-shadow: none;
+            z-index: 5;
+            transition: left 0.3s ease; /* Hiệu ứng di chuyển */
+            overflow-y: auto;
+        }
+
+        #chatHistoryPanel.open {
+            left: 0; /* Hiển thị khi mở */
+        }
+
+        #chatHistoryList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chat-history-item {
+            padding: 10px;
+            border-bottom: 1px solid #fff;
+            cursor: pointer;
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+
+        .chat-history-item:hover {
+            background-color: #2a2a2a;
+        }
+
+        .chat-history-item.active {
+            background-color: #008866;
+        }
+        /* New Conversation Button */
+        #newConversationBtn {
+            display: block;
+            width: calc(100% - 20px);
+            margin: 10px auto;
+            text-align: center;
+            background-color: #008060;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #newConversationBtn:hover {
+            background-color: #00b386;
+        }
+        .speech-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .record-btn {
+            background-color: #ff4d4d;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .record-btn:hover {
+            background-color: #cc0000;
+        }
+
+        .recording {
+            background-color: #cc0000;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(204, 0, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(204, 0, 0, 0);
+            }
+        }
+        .file-upload-btn {
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            margin-right: 10px; /* Add spacing between buttons */
+        }
+
+        .file-upload-btn:hover {
+            background-color: #2a2a2a;
+            box-shadow: none;
+        }
+        .document-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .document-icon {
+            font-size: 2em;
+            color: #fff;
+        }
+
+        .document-name {
+            color: #fff;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .remove-document-btn {
+            cursor: pointer;
+            color: #ff4d4d;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #fff;
+            font-size: 1.5em;
+        }
+        
+    </style>
+</head>
+<body>
+    <header>
+        <button id="chatHistoryBtn">☰</button>
+        <h1 class="title">LCFS Assistant</h1>
+        <p class="subtitle">--Learning is a long journey--</p>
+    </header>
+    <main>
+        <div id="chatHistoryPanel">
+            <button id="newConversationBtn">Cuộc trò chuyện mới</button>
+            <ul id="chatHistoryList"></ul>
+        </div>
+        <div id="outputContainer">
+            <div id="output"></div>
+        </div>
+
+        <div class="input-controls">
+            <input type="text" id="questionInput" placeholder="Nhập câu hỏi..." />
+            <input type="file" id="imageInput" accept="image/*" multiple style="display: none;" />
+            <button onclick="document.getElementById('imageInput').click()" class="image-upload-btn">
+                🖼️ Tải ảnh lên
+            </button>
+            <input type="file" id="documentInput" accept=".pdf,.docx" style="display: none;" />
+            <button onclick="document.getElementById('documentInput').click()" class="file-upload-btn">
+                📄 Tải tài liệu
+            </button>
+            <select id="responseType">
+                <option value="text">Trả lời bằng văn bản</option>
+                <option value="audio">Trả lời bằng giọng nói</option>
+                <option value="mindmap">Trả lời bằng Mindmap</option>
+                <option value="realtime">Tìm kiếm thông tin</option>
+            </select>
+            <select id="voiceSelect" style="display: none;">
+                <option value="gtts">VOICE</option>
+                <option value="vi-VN-NamMinhNeural">Voice 1</option>
+                <option value="vi-VN-HoaiMyNeural">Voice 2</option>
+                <option value="en-GB-RyanNeural">Voice 3 ( ENG )</option>
+                <option value="en-GB-SoniaNeural">Voice 4 ( ENG )</option>
+            </select>
+            
+            <div class="speech-controls">
+                <button id="recordBtn" class="record-btn">🎤</button>
+            </div>
+            <button onclick="generateResponse()">Gửi</button>
+            <button class="stop-button" onclick="stopResponse()">⏺️ Dừng phản hồi</button>
+            <button onclick="plotGraph()">Vẽ đồ thị</button>
+
+        </div>
+
+        <div id="mindmapDiv">
+            <button onclick="toggleMindmapList(false)">Đóng</button>
+            <div id="mindmapListContainer">
+                <div id="mindmapList"></div>
+            </div>
+            <div id="mindmapContainer" style="width: 100%; height: 100%;"></div>
+        </div>
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+            Đang xử lý tài liệu, vui lòng đợi...
+        </div>
+    </main>
+
+    <script>
+        let diagram;
+        let currentAudio = null;
+        let typingInterval = null
+        let mindmapHistory = [];
+        let uploadedImages = []; // Array to store uploaded image data and conversation ID
+        let uploadedDocument = null; // Store uploaded document data
+        let currentSessionId = null;
+        let activeConversationId = null;
+        let isRecording = false;
+        let recognition;
+
+        function initializeMindmap() {
+            const $ = go.GraphObject.make;
+            diagram = $(go.Diagram, "mindmapContainer", {
+                layout: $(go.TreeLayout, { angle: 0, layerSpacing: 50 }),
+                "undoManager.isEnabled": true,
+            });
+
+            diagram.nodeTemplate = $(
+                go.Node,
+                "Auto",
+                $(go.Shape, "RoundedRectangle", { fill: "#fff", stroke: "#000" }),
+                $(go.TextBlock, { margin: 10, font: "bold 14pt sans-serif", stroke: "#000" }, new go.Binding("text", "text"))
+            );
+
+            diagram.linkTemplate = $(
+                go.Link,
+                { routing: go.Link.Orthogonal, corner: 5 },
+                $(go.Shape, { strokeWidth: 2, stroke: "#000" }),
+                $(go.Shape, { toArrow: "Standard", fill: "black" })
+            );
+        }
+
+        function toggleMindmapList(show) {
+            const mindmapDiv = document.getElementById("mindmapDiv");
+            const mindmapListDiv = document.getElementById("mindmapListContainer");
+            const mindmapContainer = document.getElementById("mindmapContainer");
+
+            if (show) {
+                const listContainer = document.getElementById("mindmapList");
+                listContainer.innerHTML = "";
+
+                mindmapHistory.forEach((map, index) => {
+                    const listItem = document.createElement("div");
+                    listItem.className = "mindmap-list-item";
+                    listItem.textContent = `Mindmap ${index + 1}: ${map.mainIdea}`;
+                    listItem.onclick = () => displaySelectedMindmap(index);
+                    listContainer.appendChild(listItem);
+                });
+
+                mindmapListDiv.style.display = "block";
+                mindmapContainer.style.display = "none";
+            } else {
+                mindmapListDiv.style.display = "none";
+                mindmapContainer.style.display = "block";
+            }
+
+            mindmapDiv.style.display = show ? "block" : "none";
+        }
+
+        function displaySelectedMindmap(index) {
+            const selectedMap = mindmapHistory[index];
+            const mindmapContainer = document.getElementById("mindmapContainer");
+            const mindmapListDiv = document.getElementById("mindmapListContainer");
+
+            mindmapListDiv.style.display = "none";
+            mindmapContainer.style.display = "block";
+
+            const nodes = [{ key: selectedMap.mainIdea, text: selectedMap.mainIdea }];
+            selectedMap.subIdeas.forEach((sub) => {
+                if (!sub.parent) {
+                    nodes.push({ key: sub.text, text: sub.text, parent: selectedMap.mainIdea });
+                } else {
+                    nodes.push({ key: sub.text, text: sub.text, parent: sub.parent });
+                }
+            });
+
+            diagram.model = new go.TreeModel(nodes);
+        }
+
+        function stopResponse() {
+            if (typingInterval) clearInterval(typingInterval);
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+        }
+
+        function typeEffect(element, text, speed, onComplete = null) {
+            element.innerHTML = ""; // Sử dụng innerHTML để MathJax có thể render
+            let index = 0;
+            typingInterval = setInterval(() => {
+                if (index < text.length) {
+                    element.innerHTML += text[index];
+                    index++;
+                    // Cập nhật MathJax khi có nội dung mới
+                    if (text[index - 1].trim().match(/[$`]/)) { // Kiểm tra dấu hiệu có thể có công thức toán
+                        MathJax.typesetPromise();
+                    }
+                } else {
+                    clearInterval(typingInterval);
+                    if (onComplete) onComplete();
+                }
+            }, speed);
+        }
+        function plotGraph() {
+            const functionInput = prompt("Nhập hàm số (ví dụ: x^2 + 2x + 1 hoặc 2x+1/3x-1):");
+            if (!functionInput) return;
+
+            fetch('/api/plot_graph', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ function_input: functionInput })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.type === "image") {
+                    const outputDiv = document.getElementById('output');
+                    const img = document.createElement('img');
+                    img.src = data.content;
+                    img.style.maxWidth = '100%';
+                    outputDiv.appendChild(img);
+                } else {
+                    alert("Đã xảy ra lỗi khi vẽ đồ thị.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Đã xảy ra lỗi khi vẽ đồ thị.");
+            });
+        }
+
+        function addImageToMessage(imageData, messageDiv) {
+            const imgContainer = document.createElement("div");
+            imgContainer.className = "image-container";
+
+            const img = document.createElement("img");
+            img.src = imageData;
+            img.className = "image-preview";
+            imgContainer.appendChild(img);
+
+            const removeBtn = document.createElement("span");
+            removeBtn.textContent = "❌";
+            removeBtn.className = "remove-image-btn";
+            removeBtn.onclick = function() {
+                uploadedImages = uploadedImages.filter(imgData => imgData.image !== imageData);
+                messageDiv.removeChild(imgContainer);
+            };
+            imgContainer.appendChild(removeBtn);
+            messageDiv.appendChild(imgContainer);
+        }
+
+        function handleImageUpload(files, messageDiv) {
+            for (let file of files) {
+                if (file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imageData = e.target.result;
+                        uploadedImages.push({ image: imageData, session_id: currentSessionId });
+                        addImageToMessage(imageData, messageDiv);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        function handleDocumentUpload(file) {
+            if (file.type === "application/pdf" || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedDocument = {
+                        name: file.name,
+                        type: file.type,
+                        content: e.target.result.split(',')[1], // Base64 content
+                        session_id: currentSessionId
+                    };
+                    displayDocumentPreview(file.name, file.type);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert("Chỉ hỗ trợ định dạng PDF và DOCX.");
+            }
+        }
+
+        function displayDocumentPreview(documentName, documentType) {
+            const userMessage = document.createElement("div");
+            userMessage.className = "message user-message";
+
+            const documentPreview = document.createElement("div");
+            documentPreview.className = "document-preview";
+
+            const documentIcon = document.createElement("span");
+            documentIcon.className = "document-icon";
+            documentIcon.textContent = documentType === "application/pdf" ? "📄" : "📝";
+            documentPreview.appendChild(documentIcon);
+
+            const documentNameElement = document.createElement("span");
+            documentNameElement.className = "document-name";
+            documentNameElement.textContent = documentName;
+            documentPreview.appendChild(documentNameElement);
+
+            const removeBtn = document.createElement("span");
+            removeBtn.textContent = "❌";
+            removeBtn.className = "remove-document-btn";
+            removeBtn.onclick = function() {
+                uploadedDocument = null;
+                userMessage.remove();
+            };
+            documentPreview.appendChild(removeBtn);
+
+            userMessage.appendChild(documentPreview);
+            document.getElementById('output').appendChild(userMessage);
+        }
+
+        function displayConversationHistory() {
+            fetch('/api/get_conversations')
+                .then(response => response.json())
+                .then(conversations => {
+                    const chatHistoryList = document.getElementById('chatHistoryList');
+                    chatHistoryList.innerHTML = '';
+                    conversations.forEach(conversation => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'chat-history-item';
+                        listItem.textContent = conversation.title;
+                        listItem.addEventListener('click', () => {
+                            loadConversation(conversation.session_id);
+                            activeConversationId = conversation.session_id;
+                            // Remove active class from all items
+                            const allItems = document.querySelectorAll('.chat-history-item');
+                            allItems.forEach(item => item.classList.remove('active'));
+                            // Add active class to the clicked item
+                            listItem.classList.add('active');
+                        });
+                        chatHistoryList.appendChild(listItem);
+                    });
+                });
+        }
+
+        function loadConversation(sessionId) {
+            fetch(`/api/load_conversation?session_id=${sessionId}`)
+                .then(response => response.json())
+                .then(conversation => {
+                    const outputDiv = document.getElementById('output');
+                    outputDiv.innerHTML = '';
+                    conversation.forEach(message => {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `message ${message.role}-message`;
+
+                        if (message.role === 'user') {
+                            messageDiv.textContent = message.content;
+                            // Display document preview for user messages
+                            if (message.document) {
+                                const documentPreview = document.createElement("div");
+                                documentPreview.className = "document-preview";
+                                const documentIcon = document.createElement("span");
+                                documentIcon.className = "document-icon";
+                                documentIcon.textContent = message.document.type === "application/pdf" ? "📄" : "📝";
+                                documentPreview.appendChild(documentIcon);
+                                const documentNameElement = document.createElement("span");
+                                documentNameElement.className = "document-name";
+                                documentNameElement.textContent = message.document.name;
+                                documentPreview.appendChild(documentNameElement);
+                                // Note: Remove button is not added here as the document is already part of the history
+                                messageDiv.appendChild(documentPreview);
+                            }
+                        } else {
+                            if (message.response_type === 'realtime' && message.realtime_details) {
+                                // Display main summary
+                                const summaryElement = document.createElement('p');
+                                summaryElement.innerHTML = message.realtime_details.summary.split('Nguồn:')[0];
+                                messageDiv.appendChild(summaryElement);
+
+                                // Display sources
+                                const sourceElement = document.createElement('div');
+                                sourceElement.style.marginTop = '15px';
+                                sourceElement.innerHTML = `Nguồn tham khảo:<br/>${message.realtime_details.results.map(result =>
+                                    `<a href="${result.link}" target="_blank" style="color: #fff; text-decoration: underline;">${result.source}</a>`
+                                ).join(', ')}`;
+                                messageDiv.appendChild(sourceElement);
+
+                                // Display images
+                                if (message.realtime_details.images && message.realtime_details.images.length > 0) {
+                                    const imagesContainer = document.createElement('div');
+                                    imagesContainer.style.marginTop = '10px';
+                                    message.realtime_details.images.forEach(imageData => {
+                                        addImageToMessage(imageData, imagesContainer);
+                                    });
+                                    messageDiv.appendChild(imagesContainer);
+                                }
+                            } else if (message.response_type === 'mindmap') {
+                                messageDiv.innerHTML = "Mindmap đã được tạo.";
+                            } else {
+                                messageDiv.innerHTML = message.content;
+                            }
+                        }
+
+                        // Add images for both user and AI messages
+                        if (message.images && message.images.length > 0) {
+                            message.images.forEach(imageData => {
+                                addImageToMessage(imageData, messageDiv);
+                            });
+                        }
+
+                        outputDiv.appendChild(messageDiv);
+                    });
+                    currentSessionId = sessionId;
+                    toggleChatHistoryPanel();
+                    MathJax.typesetPromise(); // Render lại MathJax sau khi tải lịch sử
+                });
+        }
+
+        function startNewConversation() {
+            fetch('/api/new_conversation', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    currentSessionId = data.session_id;
+                    document.getElementById('output').innerHTML = '';
+                    uploadedImages = [];
+                    uploadedDocument = null;
+                    displayConversationHistory();
+                    toggleChatHistoryPanel();
+                });
+        }
+
+        function toggleChatHistoryPanel() {
+            const panel = document.getElementById('chatHistoryPanel');
+            panel.classList.toggle('open');
+        }
+
+        // Event listener for file input
+        document.getElementById('imageInput').addEventListener('change', function(event) {
+            const userMessage = document.createElement("div");
+            userMessage.className = "message user-message";
+            handleImageUpload(event.target.files, userMessage);
+            document.getElementById('output').appendChild(userMessage);
+        });
+
+        document.getElementById('documentInput').addEventListener('change', function(event) {
+            handleDocumentUpload(event.target.files[0]);
+        });
+
+        // Event listener for pasting images
+        document.addEventListener('paste', (event) => {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            const userMessage = document.createElement("div");
+            userMessage.className = "message user-message";
+            let imageFound = false;
+
+            for (const item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imageData = e.target.result;
+                        uploadedImages.push({ image: imageData, session_id: currentSessionId });
+                        addImageToMessage(imageData, userMessage);
+                    };
+                    reader.readAsDataURL(blob);
+                    imageFound = true;
+                }
+            }
+
+            if (imageFound) {
+                document.getElementById('output').appendChild(userMessage);
+            }
+        });
+
+        // Function to handle speech recognition
+        function handleSpeechRecognition() {
+            const recordBtn = document.getElementById('recordBtn');
+
+            if (!isRecording) {
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                recordBtn.textContent = 'Đang ghi âm...';
+
+                window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'vi-VN';
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const transcript = Array.from(event.results)
+                        .map(result => result[0])
+                        .map(result => result.transcript)
+                        .join('');
+
+                    document.getElementById('questionInput').value = transcript;
+                    // Automatically trigger response generation
+                    generateResponse(true);
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    stopRecording();
+                };
+
+                recognition.onend = () => {
+                    if (isRecording) {
+                        stopRecording();
+                    }
+                };
+
+                recognition.start();
+            } else {
+                stopRecording();
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            const recordBtn = document.getElementById('recordBtn');
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = '🎤';
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+        // Lắng nghe sự kiện thay đổi của #responseType
+        document.getElementById('responseType').addEventListener('change', function() {
+            const voiceSelect = document.getElementById('voiceSelect');
+            if (this.value === 'audio') {
+                voiceSelect.style.display = 'inline-block'; // Hiển thị khi chọn audio
+            } else {
+                voiceSelect.style.display = 'none'; // Ẩn với các lựa chọn khác
+            }
+        });
+        
+
+        // Event listener for the record button
+        document.getElementById('recordBtn').addEventListener('click', handleSpeechRecognition);
+
+        async function generateResponse(audio_response = false) {
+            const question = document.getElementById('questionInput').value.trim();
+            const responseType = document.getElementById('responseType').value;
+            const selectedVoice = document.getElementById('voiceSelect').value; // Get selected voice
+            const outputDiv = document.getElementById('output');
+            const image_data = uploadedImages.filter(img => img.session_id === currentSessionId).map(img => img.image);
+            const document_data = uploadedDocument && uploadedDocument.session_id === currentSessionId ? uploadedDocument : null;
+
+            // Determine the language based on the selected voice
+            const language = selectedVoice.startsWith("en-") ? "en" : "vi";
+
+            if (!question && !image_data.length && !document_data) {
+                alert(language === "en" ? "Please enter a question, upload images, or a document!" : "Vui lòng nhập câu hỏi, tải lên hình ảnh hoặc tài liệu!");
+                return;
+            }
+
+            if (document_data) {
+                showLoading();
+            }
+
+            const userMessage = document.createElement("div");
+            userMessage.className = "message user-message";
+            if (question) {
+                userMessage.textContent = question;
+            }
+            outputDiv.appendChild(userMessage);
+
+            const botMessage = document.createElement("div");
+            botMessage.className = "message bot-message";
+            botMessage.innerHTML = language === "en" ? "Processing..." : "Đang xử lý...";
+            outputDiv.appendChild(botMessage);
+
+            try {
+                const response = await fetch('/api/respond', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, response_type: responseType, selected_voice: selectedVoice, image_data: image_data, document_data: document_data, session_id: currentSessionId, audio_response: audio_response })
+                });
+                const data = await response.json();
+
+                if (data.type === "text") {
+                    typeEffect(botMessage, data.content, 50);
+                } else if (data.type === "audio_text") {
+                    const audioSrc = `data:audio/mp3;base64,${data.content.audio}`;
+                    currentAudio = new Audio(audioSrc);
+                    currentAudio.play();
+                    typeEffect(botMessage, data.content.text, 50, () => {
+                        currentAudio = null;
+                        MathJax.typesetPromise(); // Đảm bảo ở đây
+                    });
+                } else if (data.type === "audio") {
+                    const audioSrc = `data:audio/mp3;base64,${data.content.audio}`;
+                    currentAudio = new Audio(audioSrc);
+                    currentAudio.play();
+                    // Thêm dòng này để hiển thị văn bản đồng thời
+                    typeEffect(botMessage, data.content.text, 50, () => {
+                        currentAudio = null;
+                        MathJax.typesetPromise(); // Render MathJax sau hiệu ứng gõ chữ
+                    });
+                } else if (data.type === "mindmap") {
+                    mindmapHistory.push(data.content);
+                    toggleMindmapList(true);
+                    botMessage.textContent = language === "en" ? "Mindmap has been created." : "Mindmap đã được tạo.";
+                    displaySelectedMindmap(mindmapHistory.length - 1);
+                } else if (data.type === "realtime") {
+                    botMessage.innerHTML = "";
+                    const mainContent = data.content.summary.split('Nguồn:')[0];
+
+                    typeEffect(botMessage, mainContent, 50, () => {
+                        const sourceElement = document.createElement('div');
+                        sourceElement.style.marginTop = '15px';
+                        sourceElement.innerHTML = `Nguồn tham khảo:<br/>${data.content.results.map(result =>
+                            `<a href="${result.link}" target="_blank" style="color: #fff; text-decoration: underline;">${result.source}</a>`
+                        ).join(', ')}`;
+                        botMessage.appendChild(sourceElement);
+                        MathJax.typesetPromise(); // Render MathJax sau khi thêm nội dung
+                    });
+
+                    const resultsContainer = document.createElement('div');
+                    resultsContainer.className = 'realtime-result-container';
+                    resultsContainer.style.marginTop = '20px';
+
+                    if (data.content && data.content.results) {
+                        data.content.results.forEach(result => {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'realtime-result-item';
+
+                            if (result.image) {
+                                const img = document.createElement('img');
+                                img.src = result.image;
+                                img.alt = 'Thumbnail';
+                                resultItem.appendChild(img);
+                            }
+
+                            const titleLink = document.createElement('a');
+                            titleLink.href = result.link;
+                            titleLink.target = "_blank";
+                            titleLink.textContent = result.title;
+                            resultItem.appendChild(titleLink);
+
+                            const summary = document.createElement('p');
+                            summary.textContent = result.summary;
+                            resultItem.appendChild(summary);
+
+                            resultsContainer.appendChild(resultItem);
+                        });
+                    }
+                    outputDiv.appendChild(resultsContainer);
+                }
+                // Reset uploaded images and document for the current session after processing
+                uploadedImages = uploadedImages.filter(img => img.session_id !== currentSessionId);
+                uploadedDocument = null;
+                document.getElementById('imageInput').value = '';
+                document.getElementById('documentInput').value = '';
+                document.getElementById('questionInput').value = '';
+            } catch (error) {
+                botMessage.textContent = language === "en" ? "An error occurred: " + error.message : "Đã xảy ra lỗi: " + error.message;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                toggleMindmapList(false);
+            }
+            if (event.shiftKey && event.key === '!') {
+                toggleMindmapList(true);
+            }
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                generateResponse();
+            }
+        });
+
+        // Event listeners for chat history and new conversation
+        document.getElementById('chatHistoryBtn').addEventListener('click', toggleChatHistoryPanel);
+        document.getElementById('newConversationBtn').addEventListener('click', startNewConversation);
+
+        window.onload = () => {
+            initializeMindmap();
+            startNewConversation();
+            displayConversationHistory();
+        };
+    </script>
+</body>
+</html>
+
+
